@@ -20,7 +20,7 @@ task('cleanLog', type:  OrcasCleanLogTask)
 task('dropReplaceables', type:  OrcasDropReplaceablesTask)
 
 task('installReplaceables', dependsOn: 'dropReplaceables', type: ExecuteOrcasScriptsTask){
-  scriptFiles=project.fileTree("replaceables/")
+  scriptFiles=project.fileTree("source/")
   logname="replaceables"
 }
 

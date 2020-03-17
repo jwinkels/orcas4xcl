@@ -24,7 +24,7 @@ task('tables', type:  OrcasUpdateStaticsTask){
 task('dropReplaceables', dependsOn:'tables', type:  OrcasDropReplaceablesTask)
 
 task('replaceables', dependsOn: 'dropReplaceables', type: ExecuteOrcasScriptsTask){
-  scriptFiles=project.fileTree("replaceables")
+  scriptFiles=project.fileTree("source/")
   logname="replaceables"
 }
 
