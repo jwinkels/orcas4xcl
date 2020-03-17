@@ -1,0 +1,67 @@
+buildscript {
+    repositories {
+       mavenLocal()
+       mavenCentral()
+    }
+    dependencies {
+        classpath group: 'com.opitzconsulting.orcas', name: 'orcas-gradle-plugin',
+                  version: '7.6.0'
+
+        classpath group: 'com.oracle.ojdbc', name: 'ojdbc8', version: '19.3.0.0'
+    }
+}
+
+import com.opitzconsulting.orcas.gradle.*;
+
+extensions.create("orcasconfiguration", OrcasGradlePluginExtension)
+
+task('cleanLog', type:  OrcasCleanLogTask)
+
+task('tables', type:  OrcasUpdateStaticsTask){
+  scriptFiles=project.fileTree("tables")
+}
+
+task('dropReplaceables', dependsOn:'tables', type:  OrcasDropReplaceablesTask)
+
+task('replaceables', dependsOn: 'dropReplaceables', type: ExecuteOrcasScriptsTask){
+  scriptFiles=project.fileTree("replaceables")
+  logname="replaceables"
+}
+
+task('generateApis', dependsOn: 'replaceables', type: ExecuteOrcasScriptsTask){
+  scriptfolder="scripts/api"
+  logname="generateApis"
+}
+
+task('compileReplaceables',dependsOn: 'generateApis', type:  OrcasCompileAllInvalidTask)
+
+task('executeOneTimers', dependsOn: 'compileReplaceables', type: ExecuteOrcasOneTimeScriptsTask){
+  scriptfolder="scripts/onetimesql"
+  logname="onetimers"
+}
+
+task('granting', dependsOn: 'executeOneTimers', type: ExecuteOrcasScriptsTask){
+   scriptfolder="finally"
+   logname="granting"
+}
+
+task('deployData', dependsOn: 'granting')
+
+task('checkConnection', type: OrcasCheckConnectionTask){
+  logname="checkcon"
+}
+
+//task('exportReplaceables',dependsOn: 'checkConnection', type: OrcasExtractReplaceablesTask)
+
+//task('exportStatics', dependsOn: 'checkConnection', type: OrcasExtractStaticsTask)
+
+//task('exportGrants', type: OrcasExtractGrantsTask)
+       
+orcasconfiguration {
+          jdbcurl = "jdbc:oracle:thin:@"+project.target+":1521/"+project.pdbname
+          username = ""
+          password = ""
+          loglevel = "info"
+          excludewhereobjecttype = "object_name not like '%sys%'"
+}
+

@@ -1,0 +1,50 @@
+buildscript {
+    repositories {
+       mavenLocal()
+       mavenCentral()
+    }
+    dependencies {
+        classpath group: 'com.opitzconsulting.orcas', name: 'orcas-gradle-plugin',
+                  version: '7.6.0'
+
+        classpath group: 'com.oracle.ojdbc', name: 'ojdbc8', version: '19.3.0.0'
+    }
+}
+
+import com.opitzconsulting.orcas.gradle.*;
+
+extensions.create("orcasconfiguration", OrcasGradlePluginExtension)
+
+task('cleanLog', type:  OrcasCleanLogTask)
+
+task('dropReplaceables', type:  OrcasDropReplaceablesTask)
+
+task('installReplaceables', dependsOn: 'dropReplaceables', type: ExecuteOrcasScriptsTask){
+  scriptFiles=project.fileTree("replaceables/")
+  logname="replaceables"
+}
+
+task('compileReplaceables',dependsOn: 'installReplaceables', type:  OrcasCompileAllInvalidTask)
+
+task('final', dependsOn: 'compileReplaceables', type: ExecuteOrcasScriptsTask){
+   scriptfolder="finally"
+   logname="final"
+}
+
+task('deployApp', dependsOn: 'final')
+
+
+task('checkConnection', type: OrcasCheckConnectionTask){
+  logname="checkcon"
+}
+       
+orcasconfiguration {
+          jdbcurl = "jdbc:oracle:thin:@"+project.target+":1521/"+project.pdbname
+          username = ""
+          password = ""
+          loglevel = "info"
+          extractreplaceablesoutfolder="src/main/sql/replaceables"
+          staticsfolder="src/main/sql/statics"
+          excludewhereobjecttype = "object_name not like '%sys%'"
+}
+
