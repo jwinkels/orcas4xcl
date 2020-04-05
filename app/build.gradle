@@ -40,8 +40,8 @@ task('checkConnection', type: OrcasCheckConnectionTask){
        
 orcasconfiguration {
           jdbcurl = "jdbc:oracle:thin:@"+project.target+":1521/"+project.pdbname
-          username = ""
-          password = ""
+          username = project.username
+          password = project.password
           loglevel = "info"
           extractreplaceablesoutfolder="src/main/sql/replaceables"
           staticsfolder="src/main/sql/statics"

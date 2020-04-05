@@ -35,12 +35,17 @@ task('generateApis', dependsOn: 'replaceables', type: ExecuteOrcasScriptsTask){
 
 task('compileReplaceables',dependsOn: 'generateApis', type:  OrcasCompileAllInvalidTask)
 
-task('executeOneTimers', dependsOn: 'compileReplaceables', type: ExecuteOrcasOneTimeScriptsTask){
-  scriptfolder="scripts/onetimesql"
+task('executeDDL', dependsOn: 'compileReplaceables', type: ExecuteOrcasOneTimeScriptsTask){
+  scriptfolder="ddl"
   logname="onetimers"
 }
 
-task('granting', dependsOn: 'executeOneTimers', type: ExecuteOrcasScriptsTask){
+task('executeDML', dependsOn: 'executeDDL', type: ExecuteOrcasOneTimeScriptsTask){
+  scriptfolder="dml"
+  logname="onetimers"
+}
+
+task('granting', dependsOn: 'executeDML', type: ExecuteOrcasScriptsTask){
    scriptfolder="finally"
    logname="granting"
 }
@@ -50,17 +55,11 @@ task('deployData', dependsOn: 'granting')
 task('checkConnection', type: OrcasCheckConnectionTask){
   logname="checkcon"
 }
-
-//task('exportReplaceables',dependsOn: 'checkConnection', type: OrcasExtractReplaceablesTask)
-
-//task('exportStatics', dependsOn: 'checkConnection', type: OrcasExtractStaticsTask)
-
-//task('exportGrants', type: OrcasExtractGrantsTask)
        
 orcasconfiguration {
           jdbcurl = "jdbc:oracle:thin:@"+project.target+":1521/"+project.pdbname
-          username = ""
-          password = ""
+          username = project.username
+          password = project.password
           loglevel = "info"
           excludewhereobjecttype = "object_name not like '%sys%'"
 }
