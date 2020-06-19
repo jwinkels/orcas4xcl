@@ -17,40 +17,47 @@ extensions.create("orcasconfiguration", OrcasGradlePluginExtension)
 
 task('cleanLog', type:  OrcasCleanLogTask)
 
-task('tables', type:  OrcasUpdateStaticsTask){
+task('init', type: ExecuteOrcasOneTimeScriptsTask){
+  scriptFiles=project.fileTree('init/')
+}
+
+task('pre', dependsOn: 'init', type: ExecuteOrcasScriptsTask){
+  scriptFiles=project.fileTree('pre/')
+}
+
+task('tables', dependsOn: 'pre', type:  OrcasUpdateStaticsTask){
   scriptFiles=project.fileTree("tables")
 }
 
-task('dropReplaceables', dependsOn:'tables', type:  OrcasDropReplaceablesTask)
+task('sequences', dependsOn: 'tables', type:  OrcasUpdateStaticsTask){
+  scriptFiles=project.fileTree("sequences")
+}
 
-task('replaceables', dependsOn: 'dropReplaceables', type: ExecuteOrcasScriptsTask){
-  scriptFiles=project.fileTree("source/")
+task('dropReplaceables', dependsOn:'sequences', type:  OrcasDropReplaceablesTask)
+
+task('sources', dependsOn: 'dropReplaceables', type: ExecuteOrcasScriptsTask){
+  scriptFiles=project.fileTree("sources/")
   logname="replaceables"
 }
 
-task('generateApis', dependsOn: 'replaceables', type: ExecuteOrcasScriptsTask){
-  scriptfolder="scripts/api"
-  logname="generateApis"
+task('precompile', dependsOn: 'sources', type: ExecuteOrcasScriptsTask){
+  scriptfolder="precompile"
+  logname="precompile"
 }
 
-task('compileReplaceables',dependsOn: 'generateApis', type:  OrcasCompileAllInvalidTask)
+task('compileReplaceables',dependsOn: 'precompile', type:  OrcasCompileAllInvalidTask)
 
-task('executeDDL', dependsOn: 'compileReplaceables', type: ExecuteOrcasOneTimeScriptsTask){
-  scriptfolder="ddl"
-  logname="onetimers"
+task('post', dependsOn: 'compileReplaceables', type: ExecuteOrcasOneTimeScriptsTask){
+  scriptFiles=project.fileTree("post/")
+  logname="post"
 }
 
-task('executeDML', dependsOn: 'executeDDL', type: ExecuteOrcasOneTimeScriptsTask){
-  scriptfolder="dml"
-  logname="onetimers"
+task('finally', dependsOn: 'post', type: ExecuteOrcasScriptsTask){
+   scriptFiles=project.fileTree('finally/')
+   logname="finally"
 }
 
-task('granting', dependsOn: 'executeDML', type: ExecuteOrcasScriptsTask){
-   scriptfolder="finally"
-   logname="granting"
-}
-
-task('deployData', dependsOn: 'granting')
+task('deployData', dependsOn: 'finally')
 
 task('checkConnection', type: OrcasCheckConnectionTask){
   logname="checkcon"

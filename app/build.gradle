@@ -17,21 +17,35 @@ extensions.create("orcasconfiguration", OrcasGradlePluginExtension)
 
 task('cleanLog', type:  OrcasCleanLogTask)
 
-task('dropReplaceables', type:  OrcasDropReplaceablesTask)
+task('pre', dependsOn: 'init', type: ExecuteOrcasScriptsTask){
+  scriptFiles=project.fileTree('pre/')
+}
 
-task('installReplaceables', dependsOn: 'dropReplaceables', type: ExecuteOrcasScriptsTask){
-  scriptFiles=project.fileTree("source/")
+task('dropReplaceables', dependsOn:'pre', type:  OrcasDropReplaceablesTask)
+
+task('sources', dependsOn: 'dropReplaceables', type: ExecuteOrcasScriptsTask){
+  scriptFiles=project.fileTree("sources/")
   logname="replaceables"
 }
 
-task('compileReplaceables',dependsOn: 'installReplaceables', type:  OrcasCompileAllInvalidTask)
-
-task('final', dependsOn: 'compileReplaceables', type: ExecuteOrcasScriptsTask){
-   scriptfolder="finally"
-   logname="final"
+task('precompile', dependsOn: 'sources', type: ExecuteOrcasScriptsTask){
+  scriptfolder="precompile"
+  logname="precompile"
 }
 
-task('deployApp', dependsOn: 'final')
+task('compileReplaceables',dependsOn: 'precompile', type:  OrcasCompileAllInvalidTask)
+
+task('post', dependsOn: 'compileReplaceables', type: ExecuteOrcasOneTimeScriptsTask){
+  scriptFiles=project.fileTree("post/")
+  logname="post"
+}
+
+task('finally', dependsOn: 'post', type: ExecuteOrcasScriptsTask){
+   scriptFiles=project.fileTree('finally/')
+   logname="finally"
+}
+
+task('deployApp', dependsOn: 'finally')
 
 
 task('checkConnection', type: OrcasCheckConnectionTask){

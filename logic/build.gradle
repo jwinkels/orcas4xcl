@@ -16,22 +16,39 @@ import com.opitzconsulting.orcas.gradle.*;
 extensions.create("orcasconfiguration", OrcasGradlePluginExtension)
 
 task('cleanLog', type:  OrcasCleanLogTask)
+task('init', type: ExecuteOrcasOneTimeScriptsTask){
+  scriptFiles=project.fileTree('init/')
+}
 
-task('dropReplaceables', type:  OrcasDropReplaceablesTask)
+task('pre', dependsOn: 'init', type: ExecuteOrcasScriptsTask){
+  scriptFiles=project.fileTree('pre/')
+}
 
-task('installReplaceables', dependsOn: 'dropReplaceables', type: ExecuteOrcasScriptsTask){
-  scriptFiles=project.fileTree("source/")
+task('dropReplaceables', dependsOn:'pre', type:  OrcasDropReplaceablesTask)
+
+task('sources', dependsOn: 'dropReplaceables', type: ExecuteOrcasScriptsTask){
+  scriptFiles=project.fileTree("sources/")
   logname="replaceables"
 }
 
-task('postInstall', dependsOn: 'installReplaceables', type: ExecuteOrcasScriptsTask){
-  scriptfolder="scripts/post-compile"
-  logname="post-compile"
+task('precompile', dependsOn: 'sources', type: ExecuteOrcasScriptsTask){
+  scriptfolder="precompile"
+  logname="precompile"
 }
 
-task('compileReplaceables',dependsOn: 'postInstall', type:  OrcasCompileAllInvalidTask)
+task('compileReplaceables',dependsOn: 'precompile', type:  OrcasCompileAllInvalidTask)
 
-task('deployLogic', dependsOn: 'compileReplaceables')
+task('post', dependsOn: 'compileReplaceables', type: ExecuteOrcasOneTimeScriptsTask){
+  scriptFiles=project.fileTree("post/")
+  logname="post"
+}
+
+task('finally', dependsOn: 'post', type: ExecuteOrcasScriptsTask){
+   scriptFiles=project.fileTree('finally/')
+   logname="finally"
+}
+
+task('deployLogic', dependsOn: 'finally')
 
 
 task('checkConnection', type: OrcasCheckConnectionTask){
