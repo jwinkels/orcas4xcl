@@ -16,11 +16,16 @@ import com.opitzconsulting.orcas.gradle.*;
 extensions.create("orcasconfiguration", OrcasGradlePluginExtension)
 
 task('cleanLog', type:  OrcasCleanLogTask)
-task('init', type: ExecuteOrcasOneTimeScriptsTask){
-  scriptFiles=project.fileTree('init/')
+
+task('initDDL', type: ExecuteOrcasOneTimeScriptsTask){
+  scriptfolder='init/ddl'
 }
 
-task('pre', dependsOn: 'init', type: ExecuteOrcasScriptsTask){
+task('initDML', dependsOn: 'initDDL' type: ExecuteOrcasOneTimeScriptsTask){
+  scriptfolder='init/dml'
+}
+
+task('pre', dependsOn: 'initDML', type: ExecuteOrcasScriptsTask){
   scriptFiles=project.fileTree('pre/')
 }
 
@@ -38,12 +43,15 @@ task('precompile', dependsOn: 'sources', type: ExecuteOrcasScriptsTask){
 
 task('compileReplaceables',dependsOn: 'precompile', type:  OrcasCompileAllInvalidTask)
 
-task('post', dependsOn: 'compileReplaceables', type: ExecuteOrcasOneTimeScriptsTask){
-  scriptFiles=project.fileTree("post/")
-  logname="post"
+task('postDDL', dependsOn: 'compileReplaceables', type: ExecuteOrcasOneTimeScriptsTask){
+  scriptfolder='post/ddl'
 }
 
-task('finally', dependsOn: 'post', type: ExecuteOrcasScriptsTask){
+task('postDML', dependsOn: 'postDDL' type: ExecuteOrcasOneTimeScriptsTask){
+  scriptfolder='post/dml'
+}
+
+task('finally', dependsOn: 'postDML', type: ExecuteOrcasScriptsTask){
    scriptFiles=project.fileTree('finally/')
    logname="finally"
 }
@@ -56,7 +64,7 @@ task('checkConnection', type: OrcasCheckConnectionTask){
 }
        
 orcasconfiguration {
-          jdbcurl = "jdbc:oracle:thin:@"+project.target+":1521/"+project.pdbname
+          jdbcurl = "jdbc:oracle:thin:@"+project.target
           username = project.username
           password = project.password
           loglevel = "info"

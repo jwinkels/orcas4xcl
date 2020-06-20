@@ -17,11 +17,15 @@ extensions.create("orcasconfiguration", OrcasGradlePluginExtension)
 
 task('cleanLog', type:  OrcasCleanLogTask)
 
-task('init', type: ExecuteOrcasOneTimeScriptsTask){
-  scriptFiles=project.fileTree('init/')
+task('initDDL', type: ExecuteOrcasOneTimeScriptsTask){
+  scriptfolder=('init/ddl')
 }
 
-task('pre', dependsOn: 'init', type: ExecuteOrcasScriptsTask){
+task('initDML', dependsOn: 'initDDL' type: ExecuteOrcasOneTimeScriptsTask){
+  scriptfolder=('init/dml')
+}
+
+task('pre', dependsOn: 'initDML', type: ExecuteOrcasScriptsTask){
   scriptFiles=project.fileTree('pre/')
 }
 
@@ -64,7 +68,7 @@ task('checkConnection', type: OrcasCheckConnectionTask){
 }
        
 orcasconfiguration {
-          jdbcurl = "jdbc:oracle:thin:@"+project.target+":1521/"+project.pdbname
+          jdbcurl = "jdbc:oracle:thin:@"+project.target
           username = project.username
           password = project.password
           loglevel = "info"
