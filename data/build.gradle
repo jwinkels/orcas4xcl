@@ -51,12 +51,15 @@ task('precompile', dependsOn: 'sources', type: ExecuteOrcasScriptsTask){
 
 task('compileReplaceables',dependsOn: 'precompile', type:  OrcasCompileAllInvalidTask)
 
-task('post', dependsOn: 'compileReplaceables', type: ExecuteOrcasOneTimeScriptsTask){
-  scriptFiles=project.fileTree("post/")
-  logname="post"
+task('postDDL', dependsOn: 'compileReplaceables', type: ExecuteOrcasOneTimeScriptsTask){
+  scriptfolder='post/ddl'
 }
 
-task('finally', dependsOn: 'post', type: ExecuteOrcasScriptsTask){
+task('postDML', dependsOn: 'postDDL' type: ExecuteOrcasOneTimeScriptsTask){
+  scriptfolder='post/dml'
+}
+
+task('finally', dependsOn: 'postDML', type: ExecuteOrcasScriptsTask){
    scriptFiles=project.fileTree('finally/')
    logname="finally"
 }

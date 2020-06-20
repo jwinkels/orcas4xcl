@@ -21,7 +21,7 @@ task('initDDL', type: ExecuteOrcasOneTimeScriptsTask){
   scriptfolder='init/ddl'
 }
 
-task('initDML', dependsOn: 'initDDL' type: ExecuteOrcasOneTimeScriptsTask){
+task('initDML', dependsOn: 'initDDL', type: ExecuteOrcasOneTimeScriptsTask){
   scriptfolder='init/dml'
 }
 
@@ -47,7 +47,7 @@ task('postDDL', dependsOn: 'compileReplaceables', type: ExecuteOrcasOneTimeScrip
   scriptfolder='post/ddl'
 }
 
-task('postDML', dependsOn: 'postDDL' type: ExecuteOrcasOneTimeScriptsTask){
+task('postDML', dependsOn: 'postDDL', type: ExecuteOrcasOneTimeScriptsTask){
   scriptfolder='post/dml'
 }
 
@@ -56,7 +56,7 @@ task('finally', dependsOn: 'postDML', type: ExecuteOrcasScriptsTask){
    logname="finally"
 }
 
-task('deployLogic', dependsOn: 'finally')
+task('deployApp', dependsOn: 'finally')
 
 
 task('checkConnection', type: OrcasCheckConnectionTask){
