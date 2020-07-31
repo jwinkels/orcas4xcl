@@ -19,14 +19,17 @@ task('cleanLog', type:  OrcasCleanLogTask)
 
 task('initDDL', type: ExecuteOrcasOneTimeScriptsTask){
   scriptfolder='init/ddl'
+  logname = 'initDDL'
 }
 
 task('initDML', dependsOn: 'initDDL', type: ExecuteOrcasOneTimeScriptsTask){
   scriptfolder='init/dml'
+  logname = 'initDML'
 }
 
 task('pre', dependsOn: 'initDML', type: ExecuteOrcasScriptsTask){
   scriptFiles=project.fileTree('pre/')
+  logname = 'pre'
 }
 
 task('dropReplaceables', dependsOn:'pre', type:  OrcasDropReplaceablesTask)
@@ -45,10 +48,12 @@ task('compileReplaceables',dependsOn: 'precompile', type:  OrcasCompileAllInvali
 
 task('postDDL', dependsOn: 'compileReplaceables', type: ExecuteOrcasOneTimeScriptsTask){
   scriptfolder='post/ddl'
+  logname='postDDL'
 }
 
 task('postDML', dependsOn: 'postDDL', type: ExecuteOrcasOneTimeScriptsTask){
   scriptfolder='post/dml'
+  logname='postDML'
 }
 
 task('finally', dependsOn: 'postDML', type: ExecuteOrcasScriptsTask){
