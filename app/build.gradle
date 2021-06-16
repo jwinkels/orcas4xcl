@@ -2,6 +2,7 @@ buildscript {
     repositories {
        mavenLocal()
        mavenCentral()
+       jcenter()
     }
     dependencies {
         classpath group: 'com.opitzconsulting.orcas', name: 'orcas-gradle-plugin',
@@ -32,7 +33,11 @@ task('pre', dependsOn: 'initDML', type: ExecuteOrcasScriptsTask){
   logname='pre'
 }
 
-task('dropReplaceables', dependsOn:'pre', type:  OrcasDropReplaceablesTask)
+task('tables', dependsOn: 'pre', type:  OrcasUpdateStaticsTask){
+  scriptFiles=project.fileTree(dir: '/', includes:['tables/','sequences'])
+}
+
+task('dropReplaceables', dependsOn:'tables', type:  OrcasDropReplaceablesTask)
 
 task('sources', dependsOn: 'dropReplaceables', type: ExecuteOrcasScriptsTask){
   scriptFiles=project.fileTree("sources/")

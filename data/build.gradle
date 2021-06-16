@@ -2,6 +2,7 @@ buildscript {
     repositories {
        mavenLocal()
        mavenCentral()
+       jcenter()
     }
     dependencies {
         classpath group: 'com.opitzconsulting.orcas', name: 'orcas-gradle-plugin',
@@ -21,6 +22,7 @@ task('initDDL', type: ExecuteOrcasOneTimeScriptsTask){
   scriptfolder=('init/ddl')
   logname="initDDL"
 }
+
 
 task('initDML', dependsOn: 'initDDL', type: ExecuteOrcasOneTimeScriptsTask){
   scriptfolder=('init/dml')
