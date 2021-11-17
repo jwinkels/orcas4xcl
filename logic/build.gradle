@@ -18,26 +18,36 @@ extensions.create("orcasconfiguration", OrcasGradlePluginExtension)
 
 task('cleanLog', type:  OrcasCleanLogTask)
 
-task('initDDL', type: ExecuteOrcasOneTimeScriptsTask){
-  scriptfolder='init/ddl'
-  logname = 'initDDL'
+task('ddlInit', type: ExecuteOrcasOneTimeScriptsTask){
+  scriptfolder='dml/init'
+  logname = 'ddl-init'
 }
 
-task('initDML', dependsOn: 'initDDL', type: ExecuteOrcasOneTimeScriptsTask){
-  scriptfolder='init/dml'
-  logname = 'initDML'
+task('dmlInit', dependsOn: 'ddlInit', type: ExecuteOrcasOneTimeScriptsTask){
+  scriptfolder='dml/init'
+  logname = 'dml-init'
 }
 
-task('pre', dependsOn: 'initDML', type: ExecuteOrcasScriptsTask){
-  scriptFiles=project.fileTree('pre/')
-  logname = 'pre'
+task('ddlPre', dependsOn: 'dmlInit', type: ExecuteOrcasScriptsTask){
+  scriptFiles=project.fileTree('ddl/pre')
+  logname = 'ddl-pre'
 }
 
-task('tables', dependsOn: 'pre', type:  OrcasUpdateStaticsTask){
-  scriptFiles=project.fileTree(dir: '/', includes:['tables/','sequences'])
+task('dmlPre', dependsOn: 'ddlPre', type: ExecuteOrcasScriptsTask){
+  scriptFiles=project.fileTree('dml/pre')
+  logname = 'dml-pre'
 }
 
-task('dropReplaceables', dependsOn:'tables', type:  OrcasDropReplaceablesTask)
+task('tables', dependsOn: 'dmlPre', type:  OrcasUpdateStaticsTask){
+  scriptFiles=project.fileTree(dir: '/', includes:['tables/','sequences/'])
+}
+
+task('tables_ddl', dependsOn: 'tables', type: ExecuteOrcasOneTimeScriptsTask){
+  scriptfolder = ('tables_ddl')
+  logname = 'tables_ddl'
+}
+
+task('dropReplaceables', dependsOn:'tables_ddl', type:  OrcasDropReplaceablesTask)
 
 task('sources', dependsOn: 'dropReplaceables', type: ExecuteOrcasScriptsTask){
   scriptFiles=project.fileTree("sources/")
@@ -51,14 +61,14 @@ task('precompile', dependsOn: 'sources', type: ExecuteOrcasScriptsTask){
 
 task('compileReplaceables',dependsOn: 'precompile', type:  OrcasCompileAllInvalidTask)
 
-task('postDDL', dependsOn: 'compileReplaceables', type: ExecuteOrcasOneTimeScriptsTask){
-  scriptfolder='post/ddl'
-  logname='postDDL'
+task('ddlPost', dependsOn: 'compileReplaceables', type: ExecuteOrcasOneTimeScriptsTask){
+  scriptFiles=project.fileTree('ddl/post')
+  logname = 'ddl-post'
 }
 
-task('postDML', dependsOn: 'postDDL', type: ExecuteOrcasOneTimeScriptsTask){
-  scriptfolder='post/dml'
-  logname='postDML'
+task('dmlPost', dependsOn: 'ddlPost', type: ExecuteOrcasOneTimeScriptsTask){
+  scriptFiles=project.fileTree('dml/post')
+  logname = 'dml-post'
 }
 
 task('finally', dependsOn: 'postDML', type: ExecuteOrcasScriptsTask){
@@ -72,14 +82,31 @@ task('deployLogic', dependsOn: 'finally')
 task('checkConnection', type: OrcasCheckConnectionTask){
   logname="checkcon"
 }
+
+ddlInit.onlyIf { project.file('ddl/init').exists() && project.mode == 'init' }
+dmlInit.onlyIf { project.file('dml/init').exists() && project.mode == 'init' }
+ddlPre.onlyIf { project.file('ddl/pre').exists()   && project.mode == 'patch' }
+dmlPre.onlyIf { project.file('dml/pre').exists()   && project.mode == 'patch' }
+tables.onlyIf { project.file('tables').exists() }
+tables_ddl.onlyIf { project.file('tables_ddl').exists() }
+dropReplaceables.onlyIf { project.mode == 'init' }
+sources.onlyIf { project.file('sources').exists() }
+precompile.onlyIf { project.file('precompile').exists() }
+compileReplaceables.onlyIf { getNocompile() };
+ddlPost.onlyIf { project.file('ddl/post').exists() }
+dmlPost.onlyIf { project.file('dml/post').exists() }
+finish.onlyIf { project.file('finally').exists() }
        
 orcasconfiguration {
-          jdbcurl = "jdbc:oracle:thin:@"+project.target
-          username = project.username
-          password = project.password
-          loglevel = "info"
-          extractreplaceablesoutfolder="src/main/sql/replaceables"
-          staticsfolder="src/main/sql/statics"
-          excludewhereobjecttype = "object_name not like '%sys%'"
+  jdbcurl = "jdbc:oracle:thin:@"+project.target
+  username = project.username
+  password = project.password
+  loglevel = "info"
+  extractreplaceablesoutfolder="src/main/sql/replaceables"
+  staticsfolder="src/main/sql/statics"
+  excludewhereobjecttype = "object_name not like '%sys%'"
 }
 
+def getNocompile() {
+    return project.nocompile == 'false' ? true : false
+}
