@@ -62,21 +62,21 @@ task('precompile', dependsOn: 'sources', type: ExecuteOrcasScriptsTask){
 task('compileReplaceables',dependsOn: 'precompile', type:  OrcasCompileAllInvalidTask)
 
 task('ddlPost', dependsOn: 'compileReplaceables', type: ExecuteOrcasOneTimeScriptsTask){
-  scriptFiles=project.fileTree('ddl/post')
+  scriptfolder=('ddl/post')
   logname = 'ddl-post'
 }
 
 task('dmlPost', dependsOn: 'ddlPost', type: ExecuteOrcasOneTimeScriptsTask){
-  scriptFiles=project.fileTree('dml/post')
+  scriptfolder=('dml/post')
   logname = 'dml-post'
 }
 
-task('finally', dependsOn: 'postDML', type: ExecuteOrcasScriptsTask){
+task('finish', dependsOn: 'dmlPost', type: ExecuteOrcasScriptsTask){
    scriptFiles=project.fileTree('finally/')
-   logname="finally"
+   logname="finish"
 }
 
-task('deployLogic', dependsOn: 'finally')
+task('deployLogic', dependsOn: 'finish')
 
 
 task('checkConnection', type: OrcasCheckConnectionTask){

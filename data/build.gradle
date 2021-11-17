@@ -62,12 +62,12 @@ task('precompile', dependsOn: 'sources', type: ExecuteOrcasScriptsTask){
 task('compileReplaceables',dependsOn: 'precompile', type:  OrcasCompileAllInvalidTask)
 
 task('ddlPost', dependsOn: 'compileReplaceables', type: ExecuteOrcasOneTimeScriptsTask){
-  scriptFiles=project.fileTree('ddl/post')
+  scriptfolder=('ddl/post')
   logname = 'ddl-post'
 }
 
 task('dmlPost', dependsOn: 'ddlPost', type: ExecuteOrcasOneTimeScriptsTask){
-  scriptFiles=project.fileTree('dml/post')
+  scriptfolder=('dml/post')
   logname = 'dml-post'
 }
 
