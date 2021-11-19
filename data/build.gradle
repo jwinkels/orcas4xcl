@@ -49,19 +49,109 @@ task('tables_ddl', dependsOn: 'tables', type: ExecuteOrcasOneTimeScriptsTask){
 
 task('dropReplaceables', dependsOn:'tables_ddl', type:  OrcasDropReplaceablesTask)
 
-task('sources', dependsOn: 'dropReplaceables', type: ExecuteOrcasScriptsTask){
-  scriptFiles=project.fileTree("sources/")
-  logname="replaceables"
+task('hook-functions-pre', dependsOn: 'dropReplaceables', type: ExecuteOrcasScriptsTask){
+  scriptFiles=project.fileTree('.hooks/pre/functions')
+  logname = 'hook-functions-pre'
 }
 
-task('precompile', dependsOn: 'sources', type: ExecuteOrcasScriptsTask){
-  scriptfolder="precompile"
+task('sources-functions', dependsOn: 'hook-functions-pre', type: ExecuteOrcasScriptsTask){
+  scriptFiles=project.fileTree("sources/functions")
+  logname="sources-functions"
+}
+
+task('hook-functions-post', dependsOn: 'sources-functions', type: ExecuteOrcasScriptsTask){
+  scriptFiles=project.fileTree('.hooks/post/functions')
+  logname = 'hook-functions-post'
+}
+
+task('hook-procedures-pre', dependsOn: 'hook-functions-post', type: ExecuteOrcasScriptsTask){
+  scriptFiles=project.fileTree('.hooks/pre/procedures')
+  logname = 'hook-procedures-pre'
+}
+
+task('sources-procedures', dependsOn: 'hook-procedures-pre', type: ExecuteOrcasScriptsTask){
+  scriptFiles=project.fileTree("sources/procedures")
+  logname="sources-procedures"
+}
+
+task('hook-procedures-post', dependsOn: 'sources-procedures', type: ExecuteOrcasScriptsTask){
+  scriptFiles=project.fileTree('.hooks/post/procedures')
+  logname = 'hook-procedures-post'
+}
+
+task('hook-objects-pre', dependsOn: 'hook-procedures-post', type: ExecuteOrcasScriptsTask){
+  scriptFiles=project.fileTree('.hooks/pre/objects')
+  logname = 'hook-objects-pre'
+}
+
+task('sources-objects', dependsOn: 'hook-objects-pre', type: ExecuteOrcasScriptsTask){
+  scriptFiles=project.fileTree("sources/objects")
+  logname="sources-objects"
+}
+
+task('hook-objects-post', dependsOn: 'sources-objects', type: ExecuteOrcasScriptsTask){
+  scriptFiles=project.fileTree('.hooks/post/objects')
+  logname = 'hook-objects-post'
+}
+
+task('hook-packages-pre', dependsOn: 'hook-objects-post', type: ExecuteOrcasScriptsTask){
+  scriptFiles=project.fileTree('.hooks/pre/packages')
+  logname = 'hook-packages-pre'
+}
+
+task('sources-packages', dependsOn: 'hook-packages-pre', type: ExecuteOrcasScriptsTask){
+  scriptFiles=project.fileTree("sources/packages")
+  logname="sources-packages"
+}
+
+task('hook-packages-post', dependsOn: 'sources-packages', type: ExecuteOrcasScriptsTask){
+  scriptFiles=project.fileTree('.hooks/post/packages')
+  logname = 'hook-packages-post'
+}
+
+task('hook-trigger-pre', dependsOn: 'hook-packages-post', type: ExecuteOrcasScriptsTask){
+  scriptFiles=project.fileTree('.hooks/pre/trigger')
+  logname = 'hook-trigger-pre'
+}
+
+task('sources-trigger', dependsOn: 'sources-packages', type: ExecuteOrcasScriptsTask){
+  scriptFiles=project.fileTree("sources/trigger")
+  logname="sources-trigger"
+}
+
+task('hook-trigger-post', dependsOn: 'sources-trigger', type: ExecuteOrcasScriptsTask){
+  scriptFiles=project.fileTree('.hooks/post/trigger')
+  logname = 'hook-trigger-post'
+}
+
+task('hook-views-pre', dependsOn: 'hook-trigger-post', type: ExecuteOrcasScriptsTask){
+  scriptFiles=project.fileTree('.hooks/pre/views')
+  logname = 'hook-views-pre'
+}
+
+task('sources-views', dependsOn: 'hook-views-pre', type: ExecuteOrcasScriptsTask){
+  scriptFiles=project.fileTree("sources/views")
+  logname="sources-views"
+}
+
+task('hook-views-post', dependsOn: 'sources-views', type: ExecuteOrcasScriptsTask){
+  scriptFiles=project.fileTree('.hooks/post/views')
+  logname = 'hook-views-post'
+}
+
+task('precompile', dependsOn: 'hook-views-post', type: ExecuteOrcasScriptsTask){
+  scriptfolder=".hooks/precompile"
   logname="precompile"
 }
 
 task('compileReplaceables',dependsOn: 'precompile', type:  OrcasCompileAllInvalidTask)
 
-task('ddlPost', dependsOn: 'compileReplaceables', type: ExecuteOrcasOneTimeScriptsTask){
+task('sources-tests', dependsOn: 'compileReplaceables', type: ExecuteOrcasScriptsTask){
+  scriptFiles=project.fileTree("sources/tests")
+  logname="sources-tests"
+}
+
+task('ddlPost', dependsOn: 'sources-tests', type: ExecuteOrcasOneTimeScriptsTask){
   scriptfolder=('ddl/post')
   logname = 'ddl-post'
 }
@@ -71,12 +161,12 @@ task('dmlPost', dependsOn: 'ddlPost', type: ExecuteOrcasOneTimeScriptsTask){
   logname = 'dml-post'
 }
 
-task('finally', dependsOn: 'postDML', type: ExecuteOrcasScriptsTask){
-   scriptFiles=project.fileTree('finally/')
-   logname="finally"
+task('finish', dependsOn: 'dmlPost', type: ExecuteOrcasScriptsTask){
+   scriptFiles=project.fileTree('.hooks/finally')
+   logname="finish"
 }
 
-task('deployLogic', dependsOn: 'finally')
+task('deployData', dependsOn: 'finish')
 
 
 task('checkConnection', type: OrcasCheckConnectionTask){
@@ -90,12 +180,39 @@ dmlPre.onlyIf { project.file('dml/pre').exists()   && project.mode == 'patch' }
 tables.onlyIf { project.file('tables').exists() }
 tables_ddl.onlyIf { project.file('tables_ddl').exists() }
 dropReplaceables.onlyIf { project.mode == 'init' }
-sources.onlyIf { project.file('sources').exists() }
-precompile.onlyIf { project.file('precompile').exists() }
-compileReplaceables.onlyIf { getNocompile() };
+
+hook-functions-pre.onlyIf{ project.file('.hooks/pre/functions').exists() }
+sources-functions.onlyIf{ project.file('sources/functions').exists() }
+hook-functions-post.onlyIf{ project.file('.hooks/post/functions').exists() }
+
+hook-procedures-pre.onlyIf{ project.file('.hooks/pre/procedures').exists() }
+sources-procedures.onlyIf{ project.file('sources/procedures').exists() }
+hook-procedures-post.onlyIf{ project.file('.hooks/post/procedures').exists() }
+
+hook-objects-pre.onlyIf{ project.file('.hooks/pre/objects').exists() }
+sources-objects.onlyIf{ project.file('sources/objects').exists() }
+hook-objects-post.onlyIf{ project.file('.hooks/post/objects').exists() }
+
+hook-packages-pre.onlyIf{ project.file('.hooks/pre/packages').exists() }
+sources-packages.onlyIf{ project.file('sources/packages').exists() }
+hook-packages-post.onlyIf{ project.file('.hooks/post/packages').exists() }
+
+hook-trigger-pre.onlyIf{ project.file('.hooks/pre/trigger').exists() }
+sources-trigger.onlyIf{ project.file('sources/trigger').exists() }
+hook-trigger-post.onlyIf{ project.file('.hooks/post/trigger').exists() }
+
+hook-views-pre.onlyIf{ project.file('.hooks/pre/views').exists() }
+sources-views.onlyIf{ project.file('sources/views').exists() }
+hook-views-post.onlyIf{ project.file('.hooks/post/views').exists() }
+
+precompile.onlyIf { project.file('.hooks/precompile').exists() }
+
+compileReplaceables.onlyIf { getNocompile() }
+
 ddlPost.onlyIf { project.file('ddl/post').exists() }
 dmlPost.onlyIf { project.file('dml/post').exists() }
-finish.onlyIf { project.file('finally').exists() }
+
+finish.onlyIf { project.file('.hooks/finally').exists() }
        
 orcasconfiguration {
   jdbcurl = "jdbc:oracle:thin:@"+project.target
