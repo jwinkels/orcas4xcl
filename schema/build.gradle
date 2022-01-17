@@ -39,7 +39,7 @@ task('dmlPre', dependsOn: 'ddlPre', type: ExecuteOrcasScriptsTask){
 }
 
 task('tables', dependsOn: 'dmlPre', type:  OrcasUpdateStaticsTask){
-  scriptFiles=project.fileTree(dir: '/', includes:['tables/','sequences/'])
+  scriptFiles=project.fileTree(dir: '.', includes:['tables/','sequences/'])
 }
 
 task('tables_ddl', dependsOn: 'tables', type: ExecuteOrcasOneTimeScriptsTask){
