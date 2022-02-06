@@ -5,225 +5,217 @@ buildscript {
        jcenter()
     }
     dependencies {
-        classpath group: 'com.opitzconsulting.orcas', name: 'orcas-gradle-plugin',
-                  version: '7.6.0'
-
+        classpath group: 'com.opitzconsulting.orcas', name: 'orcas-gradle-plugin',version: '7.7.1'
         classpath group: 'com.oracle.ojdbc', name: 'ojdbc8', version: '19.3.0.0'
     }
 }
 
 import com.opitzconsulting.orcas.gradle.*;
+import groovy.io.FileType;
+
+enum OrcasTaskType{
+   STATICS, ONE_TIME_SCRIPT, DEFAULT
+}
+
+enum BuildMode{
+  INIT, PATCH, ALWAYS
+}
+
+class XclDir{
+   String path
+   OrcasTaskType type
+   String[] paths;
+   String excludePath;
+   BuildMode mode;
+
+   XclDir(String path, OrcasTaskType type, BuildMode mode){
+      this.path=path
+      this.type=type
+      this.mode=mode;
+   }
+
+   XclDir(String path, OrcasTaskType type, String excludePath, BuildMode mode){
+      this.path=path
+      this.type=type
+      this.excludePath=excludePath;
+      this.mode=mode;
+   }
+
+   XclDir(String[] paths, OrcasTaskType type){
+      this.type = type
+      this.paths = paths
+   }
+
+   String getPath(){
+      return this.path
+   }
+
+   String toString(){
+      println this.path
+   }
+
+   String[] getPaths(){
+      return this.paths
+   }
+
+   String getExcludePath(){
+      if(this.path.endsWith('/')){
+         return (this.path + this.excludePath)
+      }else{
+         return (this.path + "/" + this.excludePath)
+      }
+   }
+
+   Boolean isActive(Project project, String path){
+
+      if( project.mode == 'init'
+          && (this.mode == BuildMode.INIT || this.mode == BuildMode.ALWAYS)
+          && project.file("${path}").exists() ){
+        return true;
+      }
+
+      if( project.mode == 'patch'
+          && (this.mode == BuildMode.PATCH || this.mode == BuildMode.ALWAYS)
+          && project.file("${path}").exists() ){
+        return true;
+      }
+
+      return false;
+   }
+}
 
 extensions.create("orcasconfiguration", OrcasGradlePluginExtension)
 
-task('cleanLog', type:  OrcasCleanLogTask)
-
-task('ddlInit', type: ExecuteOrcasOneTimeScriptsTask){
-  scriptfolder='dml/init'
-  logname = 'ddl-init'
-}
-
-task('dmlInit', dependsOn: 'ddlInit', type: ExecuteOrcasOneTimeScriptsTask){
-  scriptfolder='dml/init'
-  logname = 'dml-init'
-}
-
-task('ddlPre', dependsOn: 'dmlInit', type: ExecuteOrcasScriptsTask){
-  scriptFiles=project.fileTree('ddl/pre')
-  logname = 'ddl-pre'
-}
-
-task('dmlPre', dependsOn: 'ddlPre', type: ExecuteOrcasScriptsTask){
-  scriptFiles=project.fileTree('dml/pre')
-  logname = 'dml-pre'
-}
-
-task('tables', dependsOn: 'dmlPre', type:  OrcasUpdateStaticsTask){
-  scriptFiles=project.fileTree(dir: '.', includes:['tables/','sequences/'])
-}
-
-task('tables_ddl', dependsOn: 'tables', type: ExecuteOrcasOneTimeScriptsTask){
-  scriptfolder = ('tables_ddl')
-  logname = 'tables_ddl'
-}
-
-task('dropReplaceables', dependsOn:'tables_ddl', type:  OrcasDropReplaceablesTask)
-
-task('hookFunctionsPre', dependsOn: 'dropReplaceables', type: ExecuteOrcasScriptsTask){
-  scriptFiles=project.fileTree('.hooks/pre/functions')
-  logname = 'hook-functions-pre'
-}
-
-task('sourcesFunctions', dependsOn: 'hookFunctionsPre', type: ExecuteOrcasScriptsTask){
-  scriptFiles=project.fileTree("sources/functions")
-  logname="sources-functions"
-}
-
-task('hookFunctionsPost', dependsOn: 'sourcesFunctions', type: ExecuteOrcasScriptsTask){
-  scriptFiles=project.fileTree('.hooks/post/functions')
-  logname = 'hook-functions-post'
-}
-
-task('hookProceduresPre', dependsOn: 'hookFunctionsPost', type: ExecuteOrcasScriptsTask){
-  scriptFiles=project.fileTree('.hooks/pre/procedures')
-  logname = 'hook-procedures-pre'
-}
-
-task('sourcesProcedures', dependsOn: 'hookProceduresPre', type: ExecuteOrcasScriptsTask){
-  scriptFiles=project.fileTree("sources/procedures")
-  logname="sources-procedures"
-}
-
-task('hookProceduresPost', dependsOn: 'sourcesProcedures', type: ExecuteOrcasScriptsTask){
-  scriptFiles=project.fileTree('.hooks/post/procedures')
-  logname = 'hook-procedures-post'
-}
-
-task('hookObjectsPre', dependsOn: 'hookProceduresPost', type: ExecuteOrcasScriptsTask){
-  scriptFiles=project.fileTree('.hooks/pre/objects')
-  logname = 'hook-objects-pre'
-}
-
-task('sourcesObjects', dependsOn: 'hookObjectsPre', type: ExecuteOrcasScriptsTask){
-  scriptFiles=project.fileTree("sources/objects")
-  logname="sources-objects"
-}
-
-task('hookObjectsPost', dependsOn: 'sourcesObjects', type: ExecuteOrcasScriptsTask){
-  scriptFiles=project.fileTree('.hooks/post/objects')
-  logname = 'hook-objects-post'
-}
-
-task('hookPackagesPre', dependsOn: 'hookObjectsPost', type: ExecuteOrcasScriptsTask){
-  scriptFiles=project.fileTree('.hooks/pre/packages')
-  logname = 'hook-packages-pre'
-}
-
-task('sourcesPackages', dependsOn: 'hookPackagesPre', type: ExecuteOrcasScriptsTask){
-  scriptFiles=project.fileTree("sources/packages")
-  logname="sources-packages"
-}
-
-task('hookPackagesPost', dependsOn: 'sourcesPackages', type: ExecuteOrcasScriptsTask){
-  scriptFiles=project.fileTree('.hooks/post/packages')
-  logname = 'hook-packages-post'
-}
-
-task('hookTriggerPre', dependsOn: 'hookPackagesPost', type: ExecuteOrcasScriptsTask){
-  scriptFiles=project.fileTree('.hooks/pre/trigger')
-  logname = 'hook-trigger-pre'
-}
-
-task('sourcesTrigger', dependsOn: 'hookTriggerPre', type: ExecuteOrcasScriptsTask){
-  scriptFiles=project.fileTree("sources/trigger")
-  logname="sources-trigger"
-}
-
-task('hookTriggerPost', dependsOn: 'sourcesTrigger', type: ExecuteOrcasScriptsTask){
-  scriptFiles=project.fileTree('.hooks/post/trigger')
-  logname = 'hook-trigger-post'
-}
-
-task('hookViewsPre', dependsOn: 'hookTriggerPost', type: ExecuteOrcasScriptsTask){
-  scriptFiles=project.fileTree('.hooks/pre/views')
-  logname = 'hook-views-pre'
-}
-
-task('sourcesViews', dependsOn: 'hookViewsPre', type: ExecuteOrcasScriptsTask){
-  scriptFiles=project.fileTree("sources/views")
-  logname="sources-views"
-}
-
-task('hookViewsPost', dependsOn: 'sourcesViews', type: ExecuteOrcasScriptsTask){
-  scriptFiles=project.fileTree('.hooks/post/views')
-  logname = 'hook-views-post'
-}
-
-task('precompile', dependsOn: 'hookViewsPost', type: ExecuteOrcasScriptsTask){
-  scriptfolder=".hooks/precompile"
-  logname="precompile"
-}
-
-task('compileReplaceables',dependsOn: 'precompile', type:  OrcasCompileAllInvalidTask)
-
-task('sourcesTests', dependsOn: 'compileReplaceables', type: ExecuteOrcasScriptsTask){
-  scriptFiles=project.fileTree("sources/tests")
-  logname="sources-tests"
-}
-
-task('ddlPost', dependsOn: 'sourcesTests', type: ExecuteOrcasOneTimeScriptsTask){
-  scriptfolder=('ddl/post')
-  logname = 'ddl-post'
-}
-
-task('dmlPost', dependsOn: 'ddlPost', type: ExecuteOrcasOneTimeScriptsTask){
-  scriptfolder=('dml/post')
-  logname = 'dml-post'
-}
-
-task('finish', dependsOn: 'dmlPost', type: ExecuteOrcasScriptsTask){
-   scriptFiles=project.fileTree('.hooks/finally')
-   logname="finish"
-}
-
-task('deploy', dependsOn: 'finish')
-
-
-task('checkConnection', type: OrcasCheckConnectionTask){
-  logname="checkcon"
-}
-
-ddlInit.onlyIf { project.file('ddl/init').exists() && project.mode == 'init' }
-dmlInit.onlyIf { project.file('dml/init').exists() && project.mode == 'init' }
-ddlPre.onlyIf { project.file('ddl/pre').exists()   && project.mode == 'patch' }
-dmlPre.onlyIf { project.file('dml/pre').exists()   && project.mode == 'patch' }
-tables.onlyIf { project.file('tables').exists() }
-tables_ddl.onlyIf { project.file('tables_ddl').exists() }
-dropReplaceables.onlyIf { project.mode == 'init' }
-
-hookFunctionsPre.onlyIf{ project.file('.hooks/pre/functions').exists() }
-sourcesFunctions.onlyIf{ project.file('sources/functions').exists() }
-hookFunctionsPost.onlyIf{ project.file('.hooks/post/functions').exists() }
-
-hookProceduresPre.onlyIf{ project.file('.hooks/pre/procedures').exists() }
-sourcesProcedures.onlyIf{ project.file('sources/procedures').exists() }
-hookProceduresPost.onlyIf{ project.file('.hooks/post/procedures').exists() }
-
-hookObjectsPre.onlyIf{ project.file('.hooks/pre/objects').exists() }
-sourcesObjects.onlyIf{ project.file('sources/objects').exists() }
-hookObjectsPost.onlyIf{ project.file('.hooks/post/objects').exists() }
-
-hookPackagesPre.onlyIf{ project.file('.hooks/pre/packages').exists() }
-sourcesPackages.onlyIf{ project.file('sources/packages').exists() }
-hookPackagesPost.onlyIf{ project.file('.hooks/post/packages').exists() }
-
-hookTriggerPre.onlyIf{ project.file('.hooks/pre/trigger').exists() }
-sourcesTrigger.onlyIf{ project.file('sources/trigger').exists() }
-hookTriggerPost.onlyIf{ project.file('.hooks/post/trigger').exists() }
-
-hookViewsPre.onlyIf{ project.file('.hooks/pre/views').exists() }
-sourcesViews.onlyIf{ project.file('sources/views').exists() }
-hookViewsPost.onlyIf{ project.file('.hooks/post/views').exists() }
-
-precompile.onlyIf { project.file('.hooks/precompile').exists() }
-
-compileReplaceables.onlyIf { getNocompile() }
-
-ddlPost.onlyIf { project.file('ddl/post').exists() }
-dmlPost.onlyIf { project.file('dml/post').exists() }
-
-finish.onlyIf { project.file('.hooks/finally').exists() }
-       
 orcasconfiguration {
-  jdbcurl = "jdbc:oracle:thin:@"+project.target
-  username = project.username
-  password = project.password
-  loglevel = "info"
-  extractreplaceablesoutfolder="src/main/sql/replaceables"
-  staticsfolder="src/main/sql/statics"
-  excludewhereobjecttype = "object_name not like '%sys%'"
+   jdbcurl = "jdbc:oracle:thin:@" + project.target
+   username = project.username
+   password = project.password
+   loglevel = "info"
+   extractreplaceablesoutfolder="src/main/sql/replaceables"
+   staticsfolder="src/main/sql/statics"
+   excludewhereobjecttype = "object_name not like '%sys%'"
+   excludewheresequence = "object_name like '%'"
+   excludewheremview = "object_name like '%'"
 }
 
 def getNocompile() {
-    return project.nocompile == 'false' ? true : false
+   return startParameter.nocompile == 'false' ? true : false
+}
+
+//You can add new directories here - the order does matter!
+
+def dirs = [
+            'ddlInit':             new XclDir("ddl/init",              OrcasTaskType.ONE_TIME_SCRIPT,       BuildMode.INIT),
+            'dmlInit':             new XclDir("dml/init",              OrcasTaskType.ONE_TIME_SCRIPT,       BuildMode.INIT),
+            'ddlPatchPre':         new XclDir("ddl/patch/pre",         OrcasTaskType.DEFAULT,               BuildMode.PATCH),
+            'dmlPatchPre':         new XclDir("dml/patch/pre",         OrcasTaskType.DEFAULT,               BuildMode.PATCH),
+            'sequences':           new XclDir("sequences",             OrcasTaskType.ONE_TIME_SCRIPT,       BuildMode.ALWAYS),
+            'tables':              new XclDir("tables/",               OrcasTaskType.STATICS, "tables_ddl", BuildMode.ALWAYS),
+            'tables_ddl':          new XclDir("tables/tables_ddl",     OrcasTaskType.ONE_TIME_SCRIPT,       BuildMode.ALWAYS),
+            'indexPrimaries':      new XclDir("indexes/primaries",     OrcasTaskType.ONE_TIME_SCRIPT,       BuildMode.ALWAYS),
+            'indexUniques':        new XclDir("indexes/uniques",       OrcasTaskType.ONE_TIME_SCRIPT,       BuildMode.ALWAYS),
+            'indexDefaults':       new XclDir("indexes/defaults",      OrcasTaskType.ONE_TIME_SCRIPT,       BuildMode.ALWAYS),
+            'constraintPrimaries': new XclDir("constraints/primaries", OrcasTaskType.ONE_TIME_SCRIPT,       BuildMode.ALWAYS),
+            'constraintForeigns':  new XclDir("constraints/foreigns",  OrcasTaskType.ONE_TIME_SCRIPT,       BuildMode.ALWAYS),
+            'constraintChecks':    new XclDir("constraints/checks",    OrcasTaskType.ONE_TIME_SCRIPT,       BuildMode.ALWAYS),
+            'constraintUniques':   new XclDir("constraints/uniques",   OrcasTaskType.ONE_TIME_SCRIPT,       BuildMode.ALWAYS),
+            'contexts':            new XclDir("contexts",              OrcasTaskType.DEFAULT,               BuildMode.ALWAYS),
+            'policies':            new XclDir("policies",              OrcasTaskType.DEFAULT,               BuildMode.ALWAYS),
+            'views':               new XclDir("views",                 OrcasTaskType.DEFAULT,               BuildMode.ALWAYS),
+            'functions':           new XclDir("sources/functions",     OrcasTaskType.DEFAULT,               BuildMode.ALWAYS),
+            'procedures':          new XclDir("sources/procedures",    OrcasTaskType.DEFAULT,               BuildMode.ALWAYS),
+            'objects':             new XclDir("sources/objects",       OrcasTaskType.DEFAULT,               BuildMode.ALWAYS),
+            'packages':            new XclDir("sources/packages",      OrcasTaskType.DEFAULT,               BuildMode.ALWAYS),
+            'trigger':             new XclDir("sources/trigger",       OrcasTaskType.DEFAULT,               BuildMode.ALWAYS),
+            'ddlPatchPost':        new XclDir("ddl/patch/post",        OrcasTaskType.DEFAULT,               BuildMode.PATCH),
+            'dmlPatchPost':        new XclDir("dml/patch/post",        OrcasTaskType.DEFAULT,               BuildMode.PATCH)
+            ]
+
+task deploy{
+   dependsOn "post${dirs.keySet().last()}"
+}
+
+def i = -1
+
+dirs.each{ key, dir ->
+
+    def srcDirectory = "${dir.getPath()}"
+    def taskName     = key
+    def logName      = key
+    def preDir       = ".hooks/pre/${dir.getPath()}" 
+    def postDir      = ".hooks/post/${dir.getPath()}"
+
+   println "${dir.getPath()}:" + (project.file(srcDirectory).exists() ? 'OK' : 'NOT FOUND')
+
+   task("pre${taskName}", type: ExecuteOrcasScriptsTask){
+      if(i!=-1){
+         dependsOn "post${dirs.keySet()[i]}"
+      }
+      scriptFiles=project.fileTree("${preDir}")
+      logname = "${logName}-pre"
+      doFirst{
+         println "Executing pre hooks in: ${preDir}"
+      }
+
+      enabled = dir.isActive(project, preDir)
+   }
+
+   switch(dir.type){
+      case OrcasTaskType.DEFAULT:
+         task("${taskName}", type: ExecuteOrcasScriptsTask){
+            dependsOn "pre${taskName}"
+            scriptFiles=project.fileTree("${srcDirectory}")
+            logname = "${key}"
+
+            doFirst{
+               println "Executing scripts in: ${srcDirectory}"
+            }
+
+            enabled = dir.isActive(project, srcDirectory)
+         }
+         break
+      case OrcasTaskType.ONE_TIME_SCRIPT:
+         task("${taskName}", type: ExecuteOrcasOneTimeScriptsTask){
+            dependsOn "pre${taskName}"
+            scriptfolder="${srcDirectory}"
+            logname = "${key}"
+
+            doFirst{
+               println "Executing scripts just once in: ${srcDirectory}"
+            }
+            enabled = dir.isActive(project, srcDirectory)
+         }
+         break
+      case OrcasTaskType.STATICS:
+         task("${taskName}", type:  OrcasUpdateStaticsTask){
+            dependsOn "pre${taskName}"
+            scriptFiles=project.fileTree(dir: '.',
+                                          includes:["${srcDirectory}"],
+                                          excludes:["${dir.getExcludePath()}"]
+                                       )
+            logname = "${key}"
+
+            doFirst{
+               println "Updating tables from: ${srcDirectory}"
+            }
+            enabled = dir.isActive(project, srcDirectory)
+         }
+         break
+      default:
+         task("${taskName}"){
+            println "No valid Task found!!"
+         }
+   }
+
+   task("post${taskName}", type: ExecuteOrcasScriptsTask){
+      dependsOn "${taskName}"
+      scriptFiles=project.fileTree("${postDir}")
+      logname = "${logName}"
+      doFirst{
+         println "Executing post hooks in: ${postDir}"
+      }
+
+      enabled = dir.isActive(project, postDir)
+   }
+   i = i + 1
 }
