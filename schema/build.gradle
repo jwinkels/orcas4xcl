@@ -175,7 +175,7 @@ dirs.each{ key, dir ->
          task("${taskName}", type: ExecuteOrcasScriptsTask){
             def files="all";
             dependsOn "pre${taskName}"
-            scriptFiles = project.hasProperty("mode") == "dev" ? project.fileTree("${srcDirectory}").include(files)  : project.fileTree("${srcDirectory}")
+            scriptFiles = (project.hasProperty("mode") && project.mode == "dev") ? project.fileTree("${srcDirectory}").include(files)  : project.fileTree("${srcDirectory}")
             logname = "${key}"
 
             doFirst{
