@@ -67,7 +67,7 @@ class XclDir{
         return true;
       }
 
-      if( project.mode == 'dev') 
+      if( project.mode == 'dev'
           && this.mode == BuildMode.ALWAYS
           && project.file("${path}").exists() ){
         return true;
@@ -181,7 +181,7 @@ dirs.each{ key, dir ->
 
             doFirst{
                println "Executing scripts in: ${srcDirectory}"
-               if (project.hasProperty("mode") && project.changes == "dev"){
+               if (project.hasProperty("mode") && project.mode == "dev"){
                   files = new ChangedFilesOnly().getChangedFileList(project.projectDir.toString() + '/' + srcDirectory);
                   println "With files: ${files.toString()}"
                }
