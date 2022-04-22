@@ -1,15 +1,3 @@
-buildscript {
-    repositories {
-       mavenLocal()
-       mavenCentral()
-       jcenter()
-    }
-    dependencies {
-        classpath group: 'com.opitzconsulting.orcas', name: 'orcas-gradle-plugin',version: '7.7.1'
-        classpath group: 'com.oracle.ojdbc', name: 'ojdbc8', version: '19.3.0.0'
-    }
-}
-
 import com.opitzconsulting.orcas.gradle.*;
 
 enum OrcasTaskType{
@@ -79,6 +67,12 @@ class XclDir{
         return true;
       }
 
+      if( project.mode == 'dev') 
+          && this.mode == BuildMode.ALWAYS
+          && project.file("${path}").exists() ){
+        return true;
+      }
+
       return false;
    }
 }
@@ -86,15 +80,32 @@ class XclDir{
 extensions.create("orcasconfiguration", OrcasGradlePluginExtension)
 
 orcasconfiguration {
-   jdbcurl = "jdbc:oracle:thin:@" + project.target
-   username = project.username
-   password = project.password
-   loglevel = "info"
-   extractreplaceablesoutfolder="src/main/sql/replaceables"
-   staticsfolder="src/main/sql/statics"
-   excludewhereobjecttype = "object_name not like '%sys%'"
-   excludewheresequence = "object_name like '%'"
-   excludewheremview = "object_name like '%'"
+   if (project.hasProperty("target") && project.hasProperty("username") && project.hasProperty("password")){
+      jdbcurl = "jdbc:oracle:thin:@" + project.target
+      username = project.username
+      password = project.password
+      loglevel = "info"
+      extractreplaceablesoutfolder="src/main/sql/replaceables"
+      staticsfolder="src/main/sql/statics"
+      excludewhereobjecttype = "object_name not like '%sys%'"
+      excludewheresequence = "object_name like '%'"
+      excludewheremview = "object_name like '%'"
+   }else{
+      def parameters = [];
+      if (!project.hasProperty("target")){
+         parameters.add("target")
+      }
+
+      if (!project.hasProperty("username")){
+         parameters.add("username")
+      }
+
+      if (!project.hasProperty("password")){
+         parameters.add("password")
+      }
+
+      throw new GradleException("Missing parameter(s): " + parameters.join(", "))               
+   }
 }
 
 def getNocompile() {
@@ -144,6 +155,7 @@ dirs.each{ key, dir ->
     def preDir       = ".hooks/pre/${dir.getPath()}" 
     def postDir      = ".hooks/post/${dir.getPath()}"
 
+   println "Checking directories:..."
    println "${dir.getPath()}:" + (project.file(srcDirectory).exists() ? 'OK' : 'NOT FOUND')
 
    task("pre${taskName}", type: ExecuteOrcasScriptsTask){
@@ -162,12 +174,17 @@ dirs.each{ key, dir ->
    switch(dir.type){
       case OrcasTaskType.DEFAULT:
          task("${taskName}", type: ExecuteOrcasScriptsTask){
+            def files="all";
             dependsOn "pre${taskName}"
-            scriptFiles=project.fileTree("${srcDirectory}")
+            scriptFiles = project.hasProperty("changes") ? project.fileTree("${srcDirectory}").include(files)  : project.fileTree("${srcDirectory}")
             logname = "${key}"
 
             doFirst{
                println "Executing scripts in: ${srcDirectory}"
+               if (project.hasProperty("mode") && project.changes == "dev"){
+                  files = new ChangedFilesOnly().getChangedFileList(project.projectDir.toString() + '/' + srcDirectory);
+                  println "With files: ${files.toString()}"
+               }
             }
 
             enabled = dir.isActive(project, srcDirectory)
@@ -198,6 +215,17 @@ dirs.each{ key, dir ->
                println "Updating tables from: ${srcDirectory}"
             }
             enabled = dir.isActive(project, srcDirectory)
+            
+            parameters{
+               setAdditionalOrcasExtensionFactory{
+                  Class pModelClass, boolean pReverseMode -> [new AutomaticIndex(), new UpperCasePKTablespace()];
+               }
+
+               if(project.hasProperty("tables")){
+                  println "deploying just changed tables ${project.tables.split(",").collect{ it.toUpperCase() }}"
+                  setRelevantTables(project.tables.split(",").collect{ it.toUpperCase() })
+               }
+            }
          }
          break
       default:
