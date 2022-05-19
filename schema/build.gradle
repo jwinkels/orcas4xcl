@@ -16,20 +16,20 @@ class XclDir{
    BuildMode mode;
 
    XclDir(String path, OrcasTaskType type, BuildMode mode){
-      this.path=path
-      this.type=type
-      this.mode=mode;
+      this.path = path
+      this.type = type
+      this.mode = mode;
    }
 
    XclDir(String path, OrcasTaskType type, String excludePath, BuildMode mode){
-      this.path=path
-      this.type=type
-      this.excludePath=excludePath;
-      this.mode=mode;
+      this.path        = path
+      this.type        = type
+      this.excludePath = excludePath;
+      this.mode        = mode;
    }
 
    XclDir(String[] paths, OrcasTaskType type){
-      this.type = type
+      this.type  = type
       this.paths = paths
    }
 
@@ -81,15 +81,15 @@ extensions.create("orcasconfiguration", OrcasGradlePluginExtension)
 
 orcasconfiguration {
    if (project.hasProperty("target") && project.hasProperty("username") && project.hasProperty("password")){
-      jdbcurl = "jdbc:oracle:thin:@" + project.target
-      username = project.username
-      password = project.password
-      loglevel = "info"
-      extractreplaceablesoutfolder="src/main/sql/replaceables"
-      staticsfolder="src/main/sql/statics"
-      excludewhereobjecttype = "object_name not like '%sys%'"
-      excludewheresequence = "object_name like '%'"
-      excludewheremview = "object_name like '%'"
+      jdbcurl                      = "jdbc:oracle:thin:@" + project.target
+      username                     = project.username
+      password                     = project.password
+      loglevel                     = "info"
+      extractreplaceablesoutfolder = "src/main/sql/replaceables"
+      staticsfolder                = "src/main/sql/statics"
+      excludewhereobjecttype       = "object_name not like '%sys%'"
+      excludewheresequence         = "object_name like '%'"
+      excludewheremview            = "object_name like '%'"
    }else{
       def parameters = [];
       if (!project.hasProperty("target")){
@@ -161,8 +161,8 @@ dirs.each{ key, dir ->
       if(i!=-1){
          dependsOn "post${dirs.keySet()[i]}"
       }
-      scriptFiles=project.fileTree("${preDir}")
-      logname = "${logName}-pre"
+      scriptFiles = project.fileTree("${preDir}")
+      logname     = "${logName}-pre"
       doFirst{
          println "Executing pre hooks in: ${preDir}"
       }
@@ -173,16 +173,21 @@ dirs.each{ key, dir ->
    switch(dir.type){
       case OrcasTaskType.DEFAULT:
          task("${taskName}", type: ExecuteOrcasScriptsTask){
-            def files="all";
             dependsOn "pre${taskName}"
-            scriptFiles = (project.hasProperty("mode") && project.mode == "dev") ? project.fileTree("${srcDirectory}").include(files)  : project.fileTree("${srcDirectory}")
-            logname = "${key}"
+
+            def files   = [];
+            logname     = "${key}"
+            scriptFiles = project.fileTree("${srcDirectory}");
 
             doFirst{
                println "Executing scripts in: ${srcDirectory}"
+            }
+            
+            parameters{
                if (project.hasProperty("mode") && project.mode == "dev"){
-                  files = new ChangedFilesOnly().getChangedFileList(project.projectDir.toString() + '/' + srcDirectory);
+                  files = new ChangedFilesOnly().getChangedFileList(project.projectDir.toString() + '/' + srcDirectory, srcDirectory);
                   println "With files: ${files.toString()}"
+                  setModelFiles(project.files(files) as List);
                }
             }
 
@@ -192,8 +197,8 @@ dirs.each{ key, dir ->
       case OrcasTaskType.ONE_TIME_SCRIPT:
          task("${taskName}", type: ExecuteOrcasOneTimeScriptsTask){
             dependsOn "pre${taskName}"
-            scriptfolder="${srcDirectory}"
-            logname = "${key}"
+            scriptfolder = "${srcDirectory}"
+            logname      = "${key}"
 
             doFirst{
                println "Executing scripts just once in: ${srcDirectory}"
@@ -204,11 +209,11 @@ dirs.each{ key, dir ->
       case OrcasTaskType.STATICS:
          task("${taskName}", type:  OrcasUpdateStaticsTask){
             dependsOn "pre${taskName}"
-            scriptFiles=project.fileTree(dir: '.',
+            scriptFiles = project.fileTree(dir: '.',
                                           includes:["${srcDirectory}"],
                                           excludes:["${dir.getExcludePath()}"]
                                        )
-            logname = "${key}"
+            logname     = "${key}"
 
             doFirst{
                println "Updating tables from: ${srcDirectory}"
@@ -235,8 +240,8 @@ dirs.each{ key, dir ->
 
    task("post${taskName}", type: ExecuteOrcasScriptsTask){
       dependsOn "${taskName}"
-      scriptFiles=project.fileTree("${postDir}")
-      logname = "${logName}"
+      scriptFiles = project.fileTree("${postDir}")
+      logname     = "${logName}"
       doFirst{
          println "Executing post hooks in: ${postDir}"
       }

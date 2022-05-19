@@ -3,17 +3,17 @@ import java.util.ArrayList;
 
 class ChangedFilesOnly{
 
-   List<String> getChangedFileList(String path){
+   List<String> getChangedFileList(String path, String srcDir){
       List<String> fileList =  new ArrayList<String>();
       path = path.replace("\\","/");
       String changedFilesCommand ="git diff --name-only --diff-filter=ACMRTUBX -- ${path}";
       String newFilesCommand = "git ls-files -o -- ${path}";
-      fileList = this.addToList(changedFilesCommand, fileList);
-      fileList = this.addToList(newFilesCommand, fileList);
+      fileList = this.addToList(changedFilesCommand, fileList, srcDir);
+      fileList = this.addToList(newFilesCommand, fileList, srcDir);
       return fileList;
    }
 
-   private List<String> addToList(String command, List<String> fileList){
+   private List<String> addToList(String command, List<String> fileList, String srcDir){
       Runtime r = Runtime.getRuntime();
       try
       {
@@ -25,7 +25,7 @@ class ChangedFilesOnly{
 
          while ((line = buffer.readLine()) != null) {
             String fileName =  line.substring(line.lastIndexOf('/')+1, line.length());
-            fileList.add(fileName);
+            fileList.add(srcDir + '/' + fileName);
          }
          
          buffer.close();
@@ -33,6 +33,7 @@ class ChangedFilesOnly{
          return fileList;
       }catch(Exception e){
          System.out.error(e);
+         buffer.close();
       }
    }
 }
