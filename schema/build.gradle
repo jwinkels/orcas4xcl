@@ -115,8 +115,6 @@ def getNocompile() {
 //You can add new directories here - the order does matter!
 
 def dirs = [
-            'ddlInit':             new XclDir("ddl/init",              OrcasTaskType.ONE_TIME_SCRIPT,       BuildMode.INIT),
-            'dmlInit':             new XclDir("dml/init",              OrcasTaskType.ONE_TIME_SCRIPT,       BuildMode.INIT),
             'ddlPatchPre':         new XclDir("ddl/patch/pre",         OrcasTaskType.DEFAULT,               BuildMode.PATCH),
             'dmlPatchPre':         new XclDir("dml/patch/pre",         OrcasTaskType.DEFAULT,               BuildMode.PATCH),
             'sequences':           new XclDir("sequences",             OrcasTaskType.ONE_TIME_SCRIPT,       BuildMode.ALWAYS),
@@ -138,7 +136,10 @@ def dirs = [
             'packages':            new XclDir("sources/packages",      OrcasTaskType.DEFAULT,               BuildMode.ALWAYS),
             'trigger':             new XclDir("sources/trigger",       OrcasTaskType.DEFAULT,               BuildMode.ALWAYS),
             'ddlPatchPost':        new XclDir("ddl/patch/post",        OrcasTaskType.DEFAULT,               BuildMode.PATCH),
-            'dmlPatchPost':        new XclDir("dml/patch/post",        OrcasTaskType.DEFAULT,               BuildMode.PATCH)
+            'dmlPatchPost':        new XclDir("dml/patch/post",        OrcasTaskType.DEFAULT,               BuildMode.PATCH),
+            'ddlInit':             new XclDir("ddl/init",              OrcasTaskType.ONE_TIME_SCRIPT,       BuildMode.INIT),
+            'dmlInit':             new XclDir("dml/init",              OrcasTaskType.ONE_TIME_SCRIPT,       BuildMode.INIT),
+            'dmlBase':             new XclDir("dml/base",              OrcasTaskType.DEFAULT,               BuildMode.ALWAYS)
             ]
 
 task deploy{
